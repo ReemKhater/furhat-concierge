@@ -1,0 +1,61 @@
+variables:
+    BASE_DEPLOY_URL: $CI_PROJECT_NAME.d.lst.tfo.upm.es
+
+docker-build-main:
+  # Official docker image.
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"
+  only:
+    - main
+
+docker-build:
+  # Official docker image.
+  image: docker:latest
+  stage: build
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+  script:
+    - docker build --pull -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG" .
+    - docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  except:
+    - main
+
+docker-deploy-main:
+  image: docker:latest
+  stage: deploy
+  services:
+    - docker:dind
+  script:
+    - docker rm -f $CI_PROJECT_NAME || true
+    - docker volume prune -f
+    - docker run -d --name=$CI_PROJECT_NAME -e "VIRTUAL_HOST=$BASE_DEPLOY_URL" -v furhat_logs:/app/conversation_logs --restart=unless-stopped --label io.portainer.accesscontrol.teams=Service-docker --label io.portainer.accesscontrol.users=rkhater,amedrano $CI_REGISTRY_IMAGE
+  environment:
+    name: main
+    url: https://$BASE_DEPLOY_URL
+  only:
+    - main
+
+docker-deploy:
+  image: docker:latest
+  stage: deploy
+  services:
+    - docker:dind
+  script:
+    - docker rm -f $CI_PROJECT_NAME_$CI_COMMIT_REF_SLUG || true
+    - docker run -d --name=$CI_PROJECT_NAME_$CI_COMMIT_REF_SLUG -e "VIRTUAL_HOST=$CI_COMMIT_REF_SLUG.$BASE_DEPLOY_URL" --label io.portainer.accesscontrol.teams=Service-docker --label io.portainer.accesscontrol.users=gmejias,amedrano --restart=unless-stopped $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+  environment:
+    name: $CI_COMMIT_REF_SLUG
+    url: https://$CI_COMMIT_REF_SLUG.$BASE_DEPLOY_URL
+  except:
+    - main
+
+
