@@ -174,7 +174,7 @@ docker run -it furhat-local
 ### Core Team 
 
 | Role | Name | Contribution Area 
-|-------------|-------------|
+|-------------|-------------|-------------|
 |**Internship Supervisor** | Dr. Alejandro Medrano Gil | Project guidance & architecture
 | **PhD Supervisor** | Dr. Ivana Lombroni | Research methodology
 | **LST Robotics Team** |  | Knowledge base & tests 
